@@ -3,21 +3,16 @@ const app = express();
 const connectDB = require("./config/database");
 const User = require("./models/user");
 
+app.use(express.json());
+
 app.post("/signup", async (req, res) => {
   // Creating a new instance of a user model
-  const user = new User({
-    firstName: "Abhishek",
-    lastName: "Singh",
-    emailId: "abhishek@gmail.com",
-    password: "abhi@123",
-  });
-
+  const user = new User(req.body);
   try {
     await user.save();
     res.send("User added Successfully");
   } catch (error) {
-    console.error(err);
-    res.status(500).send("An error occured while saving the user");
+    res.status(500).send("Error Saving the User:");
   }
 });
 
