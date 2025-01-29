@@ -14,7 +14,7 @@ app.post("/signup", async (req, res) => {
     await user.save();
     res.send("User added Successfully");
   } catch (error) {
-    res.status(400).send("Error Occuring while saving this user");
+    res.status(400).send("Error Occuring while saving this user" + error.message);
   }
 });
 
@@ -28,7 +28,7 @@ app.get("/user", async (req, res) => {
       res.send(user);
     }
   } catch (error) {
-    res.status(400).send("Something went Wrong");
+    res.status(400).send("Can't find the details of the user" + error.message);
   }
 });
 
@@ -43,7 +43,7 @@ app.get("/feed", async (req, res) => {
       res.send(user);
     }
   } catch (error) {
-    res.status(400).send("Something went Wrong");
+    res.status(400).send("Can't find the details of the user" + error.message);
   }
 });
 // Delete API for deleting the User
@@ -54,7 +54,7 @@ app.delete("/user", async (req, res) => {
     const user = await User.findByIdAndDelete(userId);
     res.send("user is deleted successfully");
   } catch (error) {
-    res.status(400).send("SomeThing went Wrong");
+    res.status(400).send("SomeThing went Wrong" + error.message);
   }
 });
 
@@ -65,10 +65,10 @@ app.patch("/user", async (req, res) => {
   const data = req.body;
 
   try {
-    const user = await User.findByIdAndUpdate({_id: userId}, data);
+    const user = await User.findByIdAndUpdate({ _id: userId }, data, {runValidators: true});
     res.send("User Updates Successfully");
   } catch (error) {
-    res.status(400).send("Something went wrong");
+    res.status(400).send("Update Failed" + error.message);
   }
 });
 
