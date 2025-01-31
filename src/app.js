@@ -14,7 +14,9 @@ app.post("/signup", async (req, res) => {
     await user.save();
     res.send("User added Successfully");
   } catch (error) {
-    res.status(400).send("Error Occuring while saving this user" + error.message);
+    res
+      .status(400)
+      .send("Error Occuring while saving this user: " + error.message);
   }
 });
 
@@ -28,7 +30,7 @@ app.get("/user", async (req, res) => {
       res.send(user);
     }
   } catch (error) {
-    res.status(400).send("Can't find the details of the user" + error.message);
+    res.status(400).send("Can't find the details of the user: " + error.message);
   }
 });
 
@@ -43,7 +45,7 @@ app.get("/feed", async (req, res) => {
       res.send(user);
     }
   } catch (error) {
-    res.status(400).send("Can't find the details of the user" + error.message);
+    res.status(400).send("Can't find the details of the user: " + error.message);
   }
 });
 // Delete API for deleting the User
@@ -62,13 +64,40 @@ app.delete("/user", async (req, res) => {
 
 app.patch("/user", async (req, res) => {
   const userId = req.body.userId;
-  const data = req.body;
+  const Data = req.body;
 
   try {
-    const user = await User.findByIdAndUpdate({ _id: userId }, data, {runValidators: true});
-    res.send("User Updates Successfully");
+    const ALLOWED_UPDATES = [
+      "userId",
+      "skills",
+      "about",
+      "photoUrl",
+      "gender",
+      "age",
+      "password",
+      "lastName",
+      "firstName",
+    ];
+
+    const isAllowed = Object.keys(Data).every((k) =>
+      ALLOWED_UPDATES.includes(k)
+    );
+
+    if (!isAllowed) {
+      throw new Error("Update not Allowed");
+    }
+
+    const user = await User.findByIdAndUpdate(userId, Data, {
+      new: true,
+      runValidators: true,
+    });
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    res.send("User Updated Successfully");
   } catch (error) {
-    res.status(400).send("Update Failed" + error.message);
+    res.status(400).send("Update Failed: " + error.message);
   }
 });
 
