@@ -1,5 +1,8 @@
+const expires = require("express");
 const mongoose = require("mongoose");
 const validator = require("validator");
+const jwt = require("jsonwebtoken");
+const brycpt = require("bcrypt");
 
 const userSchema = new mongoose.Schema(
   {
@@ -26,11 +29,11 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-      validate(value){
-        if(!validator.isStrongPassword(value)){
-          throw new Error ("Please enter the Strong Password" + value);
+      validate(value) {
+        if (!validator.isStrongPassword(value)) {
+          throw new Error("Please enter the Strong Password" + value);
         }
-      }
+      },
     },
     age: {
       type: Number,
@@ -76,5 +79,18 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+userSchema.methods.getJWTToken = async function () {
+  const user = this;
+  return await jwt.sign({ _id: user._id }, "DevTinder@123", {
+    expiresIn: "7d",
+  });
+};
+
+userSchema.methods.validatePassword = async function (passwordInputbyUser) {
+  const user = this;
+  const passwordHash = user.password;
+  return await brycpt.compare(passwordInputbyUser, passwordHash);
+};
 
 module.exports = mongoose.model("User", userSchema);

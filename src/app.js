@@ -2,15 +2,30 @@ const express = require("express");
 const app = express();
 const connectDB = require("./config/database");
 const User = require("./models/user");
-const { get } = require("mongoose");
+const { validateSingupData } = require("./utils/validation");
+const brycpt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const { userAuth } = require("./middleware/auth");
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signup", async (req, res) => {
-  // Creaing a new instance of the User Model
-  const user = new User(req.body);
-
   try {
+    // Validation of data
+    validateSingupData(req);
+    const { firstName, lastName, emailId, password } = req.body;
+    // ecnrypt the password
+    const passwordHash = await brycpt.hash(password, 10);
+    // Creaing a new instance of the User Model
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: passwordHash,
+    });
+
     await user.save();
     res.send("User added Successfully");
   } catch (error) {
@@ -20,84 +35,33 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-app.get("/user", async (req, res) => {
-  const userPassword = req.body.password;
+app.post("/login", async (req, res) => {
+  const { emailId, password } = req.body;
   try {
-    const user = await User.find({ password: userPassword });
-    if (user.length == 0) {
-      res.status(400).send("User not found");
-    } else {
-      res.send(user);
-    }
-  } catch (error) {
-    res.status(400).send("Can't find the details of the user: " + error.message);
-  }
-});
-
-// Feed API, GET /feed fetching all the user from the databases
-app.get("/feed", async (req, res) => {
-  const userPassword = req.body.password;
-  try {
-    const user = await User.find({ password: userPassword });
-    if (user.length == 0) {
-      res.status(400).send("User not found");
-    } else {
-      res.send(user);
-    }
-  } catch (error) {
-    res.status(400).send("Can't find the details of the user: " + error.message);
-  }
-});
-// Delete API for deleting the User
-app.delete("/user", async (req, res) => {
-  const userId = req.body.userId;
-
-  try {
-    const user = await User.findByIdAndDelete(userId);
-    res.send("user is deleted successfully");
-  } catch (error) {
-    res.status(400).send("SomeThing went Wrong" + error.message);
-  }
-});
-
-// Updating the data by Patch API
-
-app.patch("/user", async (req, res) => {
-  const userId = req.body.userId;
-  const Data = req.body;
-
-  try {
-    const ALLOWED_UPDATES = [
-      "userId",
-      "skills",
-      "about",
-      "photoUrl",
-      "gender",
-      "age",
-      "password",
-      "lastName",
-      "firstName",
-    ];
-
-    const isAllowed = Object.keys(Data).every((k) =>
-      ALLOWED_UPDATES.includes(k)
-    );
-
-    if (!isAllowed) {
-      throw new Error("Update not Allowed");
-    }
-
-    const user = await User.findByIdAndUpdate(userId, Data, {
-      new: true,
-      runValidators: true,
-    });
+    const user = await User.findOne({ emailId: emailId });
     if (!user) {
-      return res.status(404).send("User not found");
+      throw new Error("Invalid Credential");
     }
 
-    res.send("User Updated Successfully");
+    const isValidPassWord = await user.validatePassword(password);
+    if (isValidPassWord) {
+      const token = await user.getJWTToken();
+      res.cookie("token", token, { expires: new Date(Date.now() + 900000) });
+      res.send("Login Successfull");
+    } else {
+      throw new Error("Invalid Credential");
+    }
   } catch (error) {
-    res.status(400).send("Update Failed: " + error.message);
+    res.status(400).send("Error : " + error.message);
+  }
+});
+
+app.get("/profile", userAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    res.send(user);
+  } catch (error) {
+    res.status(400).send("Error: " + error.message);
   }
 });
 
