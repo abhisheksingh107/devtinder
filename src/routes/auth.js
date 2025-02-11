@@ -1,16 +1,16 @@
 const express = require("express");
 const User = require("../models/user");
 const authRouter = express.Router();
-const brycpt = require("bcrypt");
+const bcrypt = require("bcrypt");
 const { validateSingupData } = require("../utils/validation");
 
 authRouter.post("/signup", async (req, res) => {
   try {
-    // Validation of data
+    // Validation of the data
     validateSingupData(req);
     const { firstName, lastName, emailId, password } = req.body;
     // ecnrypt the password
-    const passwordHash = await brycpt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
     // Creaing a new instance of the User Model
     const user = new User({
       firstName,
@@ -24,7 +24,7 @@ authRouter.post("/signup", async (req, res) => {
   } catch (error) {
     res
       .status(400)
-      .send("Error Occuring while saving this user: " + error.message);
+      .send("Error : " + error.message);
   }
 });
 
@@ -36,9 +36,11 @@ authRouter.post("/login", async (req, res) => {
       throw new Error("Invalid Credential");
     }
 
-    const isValidPassWord = await user.validatePassword(password);
+    const isValidPassWord = await bcrypt.compare(password, user.password);
     if (isValidPassWord) {
+      // Generate the JWT Token
       const token = await user.getJWTToken();
+      // Set the token in the cookie
       res.cookie("token", token, { expires: new Date(Date.now() + 900000) });
       res.send("Login Successfull");
     } else {
@@ -48,5 +50,11 @@ authRouter.post("/login", async (req, res) => {
     res.status(400).send("Error : " + error.message);
   }
 });
+
+
+authRouter.post("/logout", async (req, res) => {
+  res.clearCookie("token");
+  res.send("Logout Successfully");
+});  
 
 module.exports = authRouter;

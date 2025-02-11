@@ -1,4 +1,4 @@
-const expires = require("express");
+const express = require("express");
 const mongoose = require("mongoose");
 const validator = require("validator");
 const jwt = require("jsonwebtoken");
